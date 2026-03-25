@@ -33,6 +33,15 @@
       --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
     }
 
+    .badge-feedback {
+      background: #e0e7ff;
+      color: #4338ca;
+    }
+
+    .badge-feedback::before {
+      background: #4338ca;
+    }
+
     *,
     *::before,
     *::after {
@@ -255,7 +264,7 @@
     /* ── Metrics ── */
     .metrics {
       display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
+      grid-template-columns: repeat(5, minmax(0, 1fr));
       gap: 10px;
       margin-bottom: 1.5rem;
     }
@@ -298,6 +307,10 @@
 
     .metric-value.red {
       color: var(--red);
+    }
+
+    .metric-value.purple {
+      color: #4338ca;
     }
 
     /* ── Views ── */
@@ -895,6 +908,10 @@
           <div class="metric-label">Urgentes</div>
           <div class="metric-value red" id="m-urgente">—</div>
         </div>
+        <div class="metric-card">
+          <div class="metric-label">Em Feedback</div>
+          <div class="metric-value purple" id="m-feedback">—</div>
+        </div>
       </div>
 
       <!-- LISTA -->
@@ -914,6 +931,7 @@
             <option value="andamento">Em andamento</option>
             <option value="concluida">Concluída</option>
             <option value="urgente">Urgente</option>
+            <option value="feedback">Feedback</option>
           </select>
           <select class="filter-select" id="filter-resp" onchange="renderTable()">
             <option value="">Todos os técnicos</option>
@@ -964,26 +982,30 @@
         </div>
       </div>
       <div id="view-logs" class="view">
-  <div class="toolbar">
-    <h2 style="font-size: 16px; font-weight: 600;">Histórico de Auditoria</h2>
-  </div>
-  <div class="table-card">
-    <table>
-      <thead>
-        <tr>
-          <th>Data / Hora</th>
-          <th>Usuário</th>
-          <th>Ação</th>
-          <th>Nº Documento / OS</th>
-          <th>Detalhes</th>
-        </tr>
-      </thead>
-      <tbody id="logs-tbody">
-        <tr><td colspan="5"><div class="empty-state">Carregando logs...</div></td></tr>
-      </tbody>
-    </table>
-  </div>
-</div>
+        <div class="toolbar">
+          <h2 style="font-size: 16px; font-weight: 600;">Histórico de Auditoria</h2>
+        </div>
+        <div class="table-card">
+          <table>
+            <thead>
+              <tr>
+                <th>Data / Hora</th>
+                <th>Usuário</th>
+                <th>Ação</th>
+                <th>Nº Documento / OS</th>
+                <th>Detalhes</th>
+              </tr>
+            </thead>
+            <tbody id="logs-tbody">
+              <tr>
+                <td colspan="5">
+                  <div class="empty-state">Carregando logs...</div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
     </main>
   </div>
 
@@ -1016,6 +1038,7 @@
             <option value="andamento">Em andamento</option>
             <option value="concluida">Concluída</option>
             <option value="urgente">Urgente</option>
+            <option value="feedback">Feedback</option>
           </select>
         </div>
         <div class="field">
@@ -1088,43 +1111,43 @@
     };
 
     let logsData = [];
-let unsubscribeLogs = null;
+    let unsubscribeLogs = null;
 
-// Escuta a coleção de logs em tempo real (limitado aos últimos 100 para economia)
-window.startLogsListener = () => {
-  const q = query(collection(db, 'logs_auditoria'), orderBy('dataHora', 'desc'), limit(100));
-  
-  unsubscribeLogs = onSnapshot(q, snap => {
-    logsData = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    renderLogsTable();
-  }, err => {
-    console.error('Erro ao carregar logs:', err.message);
-  });
-};
+    // Escuta a coleção de logs em tempo real (limitado aos últimos 100 para economia)
+    window.startLogsListener = () => {
+      const q = query(collection(db, 'logs_auditoria'), orderBy('dataHora', 'desc'), limit(100));
 
-window.renderLogsTable = () => {
-  const tbody = document.getElementById('logs-tbody');
-  
-  if (!logsData.length) { 
-    tbody.innerHTML = '<tr><td colspan="5"><div class="empty-state">Nenhum log encontrado</div></td></tr>'; 
-    return; 
-  }
+      unsubscribeLogs = onSnapshot(q, snap => {
+        logsData = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        renderLogsTable();
+      }, err => {
+        console.error('Erro ao carregar logs:', err.message);
+      });
+    };
 
-  tbody.innerHTML = logsData.map(log => {
-    // Formata a data e hora do Firebase
-    let dataFormatada = '—';
-    if (log.dataHora && log.dataHora.toDate) {
-      const d = log.dataHora.toDate();
-      dataFormatada = d.toLocaleString('pt-BR');
-    }
+    window.renderLogsTable = () => {
+      const tbody = document.getElementById('logs-tbody');
 
-    // Cores para as ações
-    let corAcao = 'text';
-    if(log.acao === 'CRIAR') corAcao = 'green';
-    if(log.acao === 'EDITAR') corAcao = 'amber';
-    if(log.acao === 'EXCLUIR') corAcao = 'red';
+      if (!logsData.length) {
+        tbody.innerHTML = '<tr><td colspan="5"><div class="empty-state">Nenhum log encontrado</div></td></tr>';
+        return;
+      }
 
-    return `
+      tbody.innerHTML = logsData.map(log => {
+        // Formata a data e hora do Firebase
+        let dataFormatada = '—';
+        if (log.dataHora && log.dataHora.toDate) {
+          const d = log.dataHora.toDate();
+          dataFormatada = d.toLocaleString('pt-BR');
+        }
+
+        // Cores para as ações
+        let corAcao = 'text';
+        if (log.acao === 'CRIAR') corAcao = 'green';
+        if (log.acao === 'EDITAR') corAcao = 'amber';
+        if (log.acao === 'EXCLUIR') corAcao = 'red';
+
+        return `
       <tr>
         <td class="date-cell">${dataFormatada}</td>
         <td>${esc(log.usuario)}</td>
@@ -1132,8 +1155,8 @@ window.renderLogsTable = () => {
         <td><span class="os-id">${esc(log.osId)}</span></td>
         <td>${esc(log.detalhes)}</td>
       </tr>`;
-  }).join('');
-};
+      }).join('');
+    };
 
     // ── Auth ──
     window.loginGoogle = async () => {
@@ -1295,7 +1318,17 @@ window.renderLogsTable = () => {
       <td class="date-cell">${fmtDate(o.abertura)}</td>
       <td class="date-cell">${fmtDate(o.prazo)}</td>
       <td><span class="badge badge-${o.status}">${labelStatus(o.status)}</span></td>
-      <td><button class="action-btn" onclick="openEdit('${o.id}')">Editar</button></td>
+      <td>
+        <div style="display: flex; gap: 6px; align-items: center;">
+          <button class="action-btn" title="Copiar descrição e histórico" onclick="copyOSData('${o.id}')" style="display: flex; align-items: center; justify-content: center; padding: 5px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+          </button>
+          <button class="action-btn" onclick="openEdit('${o.id}')">Editar</button>
+        </div>
+      </td>
     </tr>`).join('');
     };
 
@@ -1304,6 +1337,7 @@ window.renderLogsTable = () => {
       document.getElementById('m-andamento').textContent = osData.filter(o => o.status === 'andamento').length;
       document.getElementById('m-concluida').textContent = osData.filter(o => o.status === 'concluida').length;
       document.getElementById('m-urgente').textContent = osData.filter(o => o.status === 'urgente').length;
+      document.getElementById('m-feedback').textContent = osData.filter(o=>o.status==='feedback').length;
     }
 
     function populateResp() {
@@ -1336,12 +1370,10 @@ window.renderLogsTable = () => {
 
     // ── Charts ──
     function updateCharts() {
-      const statusCounts = { aberta: 0, andamento: 0, concluida: 0, urgente: 0 };
-      osData.forEach(o => { if (statusCounts[o.status] !== undefined) statusCounts[o.status]++; });
-      const sColors = ['#2563eb', '#b45309', '#166534', '#991b1b'];
-      const sLabels = ['Aberta', 'Em andamento', 'Concluída', 'Urgente'];
-      const sVals = [statusCounts.aberta, statusCounts.andamento, statusCounts.concluida, statusCounts.urgente];
-
+      const statusCounts = { aberta: 0, andamento: 0, concluida: 0, urgente: 0, feedback: 0 }; osData.forEach(o => { if (statusCounts[o.status] !== undefined) statusCounts[o.status]++; });
+      const sColors = ['#2563eb', '#b45309', '#166534', '#991b1b', '#4338ca']; // Adicionado o roxo no final
+      const sLabels = ['Aberta', 'Em andamento', 'Concluída', 'Urgente', 'Feedback'];;
+      const sVals = [statusCounts.aberta, statusCounts.andamento, statusCounts.concluida, statusCounts.urgente, statusCounts.feedback];
       document.getElementById('legend-status').innerHTML = sLabels.map((l, i) => `
     <div class="legend-item"><span class="legend-dot" style="background:${sColors[i]}"></span>${l} (${sVals[i]})</div>`).join('');
 
@@ -1352,16 +1384,44 @@ window.renderLogsTable = () => {
         options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, cutout: '60%' }
       });
 
-      const techs = [...new Set(osData.map(o => o.tecnico).filter(Boolean))].sort();
-      const tCounts = techs.map(t => osData.filter(o => o.tecnico === t).length);
+      // --- Início do gráfico: OS por técnico ---
+
+      // 1. Filtra os dados para manter apenas os status desejados
+      const osAtivas = osData.filter(o => o.status === 'andamento' || o.status === 'urgente');
+
+      // 2. Pega os nomes dos técnicos usando os dados filtrados
+      const techs = [...new Set(osAtivas.map(o => o.tecnico).filter(Boolean))].sort();
+
+      // 3. Conta quantas ordens ativas cada técnico possui
+      const tCounts = techs.map(t => osAtivas.filter(o => o.tecnico === t).length);
+
       const wrapH = Math.max(180, techs.length * 38 + 60);
       document.getElementById('chart-tecnico').parentElement.style.height = wrapH + 'px';
+
       if (chartTecnico) chartTecnico.destroy();
       chartTecnico = new Chart(document.getElementById('chart-tecnico'), {
         type: 'bar',
-        data: { labels: techs, datasets: [{ data: tCounts, backgroundColor: '#5DCAA5', borderRadius: 4, borderSkipped: false }] },
-        options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { stepSize: 1 }, grid: { display: false } }, y: { grid: { display: false } } } }
+        data: {
+          labels: techs,
+          datasets: [{
+            data: tCounts,
+            backgroundColor: '#5DCAA5',
+            borderRadius: 4,
+            borderSkipped: false
+          }]
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { ticks: { stepSize: 1 }, grid: { display: false } },
+            y: { grid: { display: false } }
+          }
+        }
       });
+      // --- Fim do gráfico: OS por técnico ---
 
       // Monthly
       const months = []; const mLabels = [];
@@ -1381,13 +1441,51 @@ window.renderLogsTable = () => {
 
     // ── Helpers ──
     function fmtDate(d) { if (!d) return '—'; const [y, m, dd] = d.split('-'); return `${dd}/${m}/${y}`; }
-    function labelStatus(s) { return { aberta: 'Aberta', andamento: 'Em andamento', concluida: 'Concluída', urgente: 'Urgente' }[s] || s; }
+    function labelStatus(s) {
+      return { aberta: 'Aberta', andamento: 'Em andamento', concluida: 'Concluída', urgente: 'Urgente', feedback: 'Feedback' }[s] || s;
+    }
     function esc(s) { return (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
 
     window.showToast = (msg) => {
       const t = document.getElementById('toast');
       t.textContent = msg; t.classList.add('show');
       setTimeout(() => t.classList.remove('show'), 3000);
+    };
+
+    // ── Copiar Histórico da OS ──
+    window.copyOSData = (id) => {
+      const o = osData.find(x => x.id === id);
+      if (!o) return;
+
+      // Monta o cabeçalho e a descrição
+      let textoCopiado = `*Cliente:* ${o.cliente}\n`;
+      textoCopiado += `*Descrição do Serviço:*\n${o.desc || 'Sem descrição'}\n\n`;
+      textoCopiado += `*Histórico de Comentários:*\n`;
+
+      // Adiciona os comentários com data, hora e autor
+      if (o.comments && o.comments.length > 0) {
+        o.comments.forEach(c => {
+          // Formata a data e hora se disponível
+          let dataHora = c.date;
+          if (c.timestamp) { // Se você estiver salvando timestamp nos comentários
+            dataHora = new Date(c.timestamp).toLocaleString('pt-BR');
+          } else {
+            dataHora = fmtDate(c.date);
+          }
+
+          textoCopiado += `[${dataHora}] ${c.user}:\n- ${c.text}\n\n`;
+        });
+      } else {
+        textoCopiado += `Nenhum comentário registrado.\n`;
+      }
+
+      // Copia para a área de transferência
+      navigator.clipboard.writeText(textoCopiado).then(() => {
+        showToast('Histórico copiado para a área de transferência!');
+      }).catch(err => {
+        console.error('Erro ao copiar:', err);
+        showToast('Erro ao copiar dados. Verifique as permissões do navegador.');
+      });
     };
   </script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
