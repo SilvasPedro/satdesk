@@ -1018,10 +1018,18 @@
       </div>
       <div class="modal-body">
         <div class="row2">
-          <div class="field"><label class="field-label">Cliente</label><input class="field-input" id="f-cliente"
-              placeholder="Nome do cliente" /></div>
-          <div class="field"><label class="field-label">Técnico responsável</label><input class="field-input"
-              id="f-tecnico" placeholder="Nome do técnico" /></div>
+          <div class="field">
+            <label class="field-label">Nº da OS *</label>
+            <input class="field-input" id="f-numero" placeholder="Ex: 12345" />
+          </div>
+          <div class="field">
+            <label class="field-label">Cliente *</label>
+            <input class="field-input" id="f-cliente" placeholder="Nome do cliente" />
+          </div>
+        </div>
+        <div class="field">
+          <label class="field-label">Técnico responsável</label>
+          <input class="field-input" id="f-tecnico" placeholder="Nome do técnico" />
         </div>
         <div class="field"><label class="field-label">Descrição do serviço</label><textarea class="field-input"
             id="f-desc" placeholder="Descreva o serviço..."></textarea></div>
@@ -1206,11 +1214,18 @@
 
     // ── Save / Update ──
     window.saveOS = async () => {
+      const numero = document.getElementById('f-numero').value.trim();
       const cliente = document.getElementById('f-cliente').value.trim();
+
+      // Validações de campos obrigatórios
+      if (!numero) { showToast('Informe o número da OS'); return; }
       if (!cliente) { showToast('Informe o cliente'); return; }
+
       const btn = document.getElementById('save-btn');
       btn.disabled = true; btn.textContent = 'Salvando...';
+
       const payload = {
+        numero, // <--- Adicionamos o número aqui
         cliente,
         tecnico: document.getElementById('f-tecnico').value.trim(),
         desc: document.getElementById('f-desc').value.trim(),
@@ -1247,7 +1262,7 @@
     window.openNew = () => {
       editingId = null; tempComments = [];
       document.getElementById('modal-title').textContent = 'Nova OS';
-      ['f-cliente', 'f-tecnico', 'f-desc', 'f-prazo', 'f-comment'].forEach(id => document.getElementById(id).value = '');
+      ['f-numero', 'f-cliente', 'f-tecnico', 'f-desc', 'f-prazo', 'f-comment'].forEach(id => document.getElementById(id).value = '');
       document.getElementById('f-abertura').value = new Date().toISOString().slice(0, 10);
       document.getElementById('f-status').value = 'aberta';
       renderComments();
@@ -1259,6 +1274,7 @@
       if (!o) return;
       editingId = id; tempComments = [...(o.comments || [])];
       document.getElementById('modal-title').textContent = 'Editar OS';
+      document.getElementById('f-numero').value = o.numero || '';
       document.getElementById('f-cliente').value = o.cliente || '';
       document.getElementById('f-tecnico').value = o.tecnico || '';
       document.getElementById('f-desc').value = o.desc || '';
@@ -1298,8 +1314,7 @@
       const st = document.getElementById('filter-status').value;
       const re = document.getElementById('filter-resp').value;
       return osData.filter(o => {
-        const ms = !s || [o.cliente, o.desc, o.tecnico, o.id].some(v => (v || '').toLowerCase().includes(s));
-        const mst = !st || o.status === st;
+        const ms = !s || [o.numero, o.cliente, o.desc, o.tecnico, o.id].some(v => (v || '').toLowerCase().includes(s)); const mst = !st || o.status === st;
         const mr = !re || o.tecnico === re;
         return ms && mst && mr;
       });
@@ -1311,8 +1326,7 @@
       if (!data.length) { tbody.innerHTML = '<tr><td colspan="8"><div class="empty-state">Nenhuma OS encontrada</div></td></tr>'; return; }
       tbody.innerHTML = data.map((o, i) => `
     <tr>
-      <td><span class="os-id">#${String(i + 1).padStart(3, '0')}</span></td>
-      <td>${esc(o.cliente)}</td>
+<td><span class="os-id">#${esc(o.numero || '---')}</span></td>      <td>${esc(o.cliente)}</td>
       <td class="desc-cell" title="${esc(o.desc)}">${esc(o.desc)}</td>
       <td>${esc(o.tecnico)}</td>
       <td class="date-cell">${fmtDate(o.abertura)}</td>
@@ -1337,7 +1351,7 @@
       document.getElementById('m-andamento').textContent = osData.filter(o => o.status === 'andamento').length;
       document.getElementById('m-concluida').textContent = osData.filter(o => o.status === 'concluida').length;
       document.getElementById('m-urgente').textContent = osData.filter(o => o.status === 'urgente').length;
-      document.getElementById('m-feedback').textContent = osData.filter(o=>o.status==='feedback').length;
+      document.getElementById('m-feedback').textContent = osData.filter(o => o.status === 'feedback').length;
     }
 
     function populateResp() {
