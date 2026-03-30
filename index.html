@@ -945,11 +945,11 @@
           </div>
           <div id="table-wrap" style="display:none;">
             <table>
-              <thead>
+<thead>
                 <tr>
                   <th>Nº OS</th>
                   <th>Cliente</th>
-                  <th>Descrição</th>
+                  <th>Telefone</th> <th>Endereço</th> <th>Descrição</th>
                   <th>Técnico</th>
                   <th>Abertura</th>
                   <th>Prazo</th>
@@ -1025,6 +1025,16 @@
           <div class="field">
             <label class="field-label">Cliente *</label>
             <input class="field-input" id="f-cliente" placeholder="Nome do cliente" />
+          </div>
+        </div>
+        <div class="row2">
+          <div class="field">
+            <label class="field-label">Telefone</label>
+            <input class="field-input" id="f-telefone" placeholder="(00) 00000-0000" />
+          </div>
+          <div class="field">
+            <label class="field-label">Endereço</label>
+            <input class="field-input" id="f-endereco" placeholder="Rua, Número, Bairro" />
           </div>
         </div>
         <div class="field">
@@ -1217,6 +1227,9 @@
       const numero = document.getElementById('f-numero').value.trim();
       const cliente = document.getElementById('f-cliente').value.trim();
 
+      const telefone = document.getElementById('f-telefone').value.trim();
+      const endereco = document.getElementById('f-endereco').value.trim();
+
       // Validações de campos obrigatórios
       if (!numero) { showToast('Informe o número da OS'); return; }
       if (!cliente) { showToast('Informe o cliente'); return; }
@@ -1227,6 +1240,8 @@
       const payload = {
         numero, // <--- Adicionamos o número aqui
         cliente,
+        telefone,
+        endereco,
         tecnico: document.getElementById('f-tecnico').value.trim(),
         desc: document.getElementById('f-desc').value.trim(),
         abertura: document.getElementById('f-abertura').value,
@@ -1262,8 +1277,7 @@
     window.openNew = () => {
       editingId = null; tempComments = [];
       document.getElementById('modal-title').textContent = 'Nova OS';
-      ['f-numero', 'f-cliente', 'f-tecnico', 'f-desc', 'f-prazo', 'f-comment'].forEach(id => document.getElementById(id).value = '');
-      document.getElementById('f-abertura').value = new Date().toISOString().slice(0, 10);
+      ['f-numero', 'f-cliente', 'f-telefone', 'f-endereco', 'f-tecnico', 'f-desc', 'f-prazo', 'f-comment'].forEach(id => document.getElementById(id).value = ''); document.getElementById('f-abertura').value = new Date().toISOString().slice(0, 10);
       document.getElementById('f-status').value = 'aberta';
       renderComments();
       document.getElementById('modal-backdrop').classList.add('open');
@@ -1276,6 +1290,8 @@
       document.getElementById('modal-title').textContent = 'Editar OS';
       document.getElementById('f-numero').value = o.numero || '';
       document.getElementById('f-cliente').value = o.cliente || '';
+      document.getElementById('f-telefone').value = o.telefone || '';
+      document.getElementById('f-endereco').value = o.endereco || '';
       document.getElementById('f-tecnico').value = o.tecnico || '';
       document.getElementById('f-desc').value = o.desc || '';
       document.getElementById('f-abertura').value = o.abertura || '';
@@ -1320,13 +1336,20 @@
       });
     }
 
-    window.renderTable = () => {
+window.renderTable = () => {
       const data = getFiltered();
       const tbody = document.getElementById('os-tbody');
-      if (!data.length) { tbody.innerHTML = '<tr><td colspan="8"><div class="empty-state">Nenhuma OS encontrada</div></td></tr>'; return; }
+      
+      // Atualizei o colspan de 8 para 10 aqui embaixo:
+      if (!data.length) { tbody.innerHTML = '<tr><td colspan="10"><div class="empty-state">Nenhuma OS encontrada</div></td></tr>'; return; }
+      
       tbody.innerHTML = data.map((o, i) => `
     <tr>
-<td><span class="os-id">#${esc(o.numero || '---')}</span></td>      <td>${esc(o.cliente)}</td>
+      <td><span class="os-id">#${esc(o.numero || '---')}</span></td>      
+      <td>${esc(o.cliente)}</td>
+      <td style="white-space: nowrap;">${esc(o.telefone || '---')}</td>
+      <td>${esc(o.endereco || '---')}</td>
+      
       <td class="desc-cell" title="${esc(o.desc)}">${esc(o.desc)}</td>
       <td>${esc(o.tecnico)}</td>
       <td class="date-cell">${fmtDate(o.abertura)}</td>
@@ -1365,8 +1388,8 @@
     // ── Export ──
     window.exportCSV = () => {
       const data = getFiltered();
-      const rows = [['Cliente', 'Descrição', 'Técnico', 'Abertura', 'Prazo', 'Status']];
-      data.forEach(o => rows.push([o.cliente, o.desc, o.tecnico, o.abertura, o.prazo, labelStatus(o.status)]));
+      const rows = [['Cliente', 'Telefone', 'Endereço', 'Descrição', 'Técnico', 'Abertura', 'Prazo', 'Status']];
+      data.forEach(o => rows.push([o.cliente, o.telefone, o.endereco, o.desc, o.tecnico, o.abertura, o.prazo, labelStatus(o.status)]));
       const csv = rows.map(r => r.map(c => '"' + (c || '').replace(/"/g, '""') + '"').join(',')).join('\n');
       const a = document.createElement('a');
       a.href = 'data:text/csv;charset=utf-8,\uFEFF' + encodeURIComponent(csv);
@@ -1473,8 +1496,9 @@
 
       // Monta o cabeçalho e a descrição
       let textoCopiado = `*Cliente:* ${o.cliente}\n`;
+      textoCopiado += `*Telefone:* ${o.telefone || 'Não informado'}\n`;
+      textoCopiado += `*Endereço:* ${o.endereco || 'Não informado'}\n`;
       textoCopiado += `*Descrição do Serviço:*\n${o.desc || 'Sem descrição'}\n\n`;
-      textoCopiado += `*Histórico de Comentários:*\n`;
 
       // Adiciona os comentários com data, hora e autor
       if (o.comments && o.comments.length > 0) {
